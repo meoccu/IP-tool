@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IP.LOS.PINK · 移动诊断</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #000;
+            --glass-bg: rgba(18,18,18,0.75);
+            --glass-border: rgba(255,255,255,0.08);
+            --text: #f0f0f0;
+            --text-secondary: #a0a0b0;
+            --accent: #a78bfa;
+            --radius: 20px;
+            --blur: blur(20px);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', 'PingFang SC', sans-serif;
+            background: var(--bg); color: var(--text);
+            padding: 14px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .glass-card {
+            background: var(--glass-bg); backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            border: 1px solid var(--glass-border); border-radius: var(--radius);
+            padding: 18px 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+        }
+        .card-title {
+            font-size: 1rem; font-weight: 600; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px; color: #e0e0e0;
+        }
+        .data-row {
+            display: flex; justify-content: space-between; padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem;
+        }
+        .data-label { color: var(--text-secondary); }
+        .data-value { font-weight: 600; color: #d0d0f0; word-break: break-all; }
+        .data-value.ip { color: #b4a5f5; }
+        .badge {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 0.7rem; font-weight: 600;
+        }
+        .badge-success { background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); }
+        .badge-danger { background:rgba(248,113,113,0.15); color:#f87171; border:1px solid rgba(248,113,113,0.3); }
+        .badge-warning { background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3); }
+        .badge-info { background:rgba(129,140,248,0.15); color:#818cf8; border:1px solid rgba(129,140,248,0.3); }
+        .btn {
+            padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 0.82rem;
+            border: none; background: rgba(139,92,246,0.12); color: #c4b5fd;
+            border: 1px solid rgba(139,92,246,0.25); backdrop-filter: blur(10px);
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .btn-primary { background: linear-gradient(135deg,#7c3aed,#9f7aea); color:#fff; border:none; }
+        input, select {
+            width: 100%; padding: 10px 14px; background: rgba(20,20,20,0.8);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+            color: #fff; font-size: 0.85rem; margin: 6px 0;
+        }
+        .conn-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+        .conn-item {
+            background: rgba(255,255,255,0.03); border-radius: 12px;
+            padding: 10px 12px; text-align: center; flex: 1 0 80px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .ip-block {
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .geo-block {
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            margin-top: 10px;
+        }
+        .fold-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .fold-content { display: none; }
+        .fold-content.show { display: block; }
+        .security-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .tools-nav-mobile {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+        }
+        .tool-chip {
+            padding: 8px 14px; border-radius: 20px;
+            background: rgba(255,255,255,0.05); font-size: 0.8rem;
+            border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+        }
+        .tool-chip.active { background: rgba(139,92,246,0.2); border-color: #a78bfa; }
+        .footer { text-align:center; font-size:0.75rem; color:#5a5a6e; padding:10px 0; border-top:1px solid rgba(255,255,255,0.04); }
+    </style>
+</head>
+<body>
+    <div style="text-align:center;">
+        <h1 style="font-size:1.8rem;background:linear-gradient(135deg,#c4b5fd,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">IP.LOS.PINK</h1>
+    </div>
+
+    <!-- 1. IP 信息 -->
+    <div class="glass-card">
+        <div class="card-title">🔦 IP 信息</div>
+        <div class="ip-block"><strong style="color:#a0a0b0;">IPv4</strong><div id="ipv4Sources"></div></div>
+        <div class="ip-block"><strong style="color:#a0a0b0;">IPv6</strong><div id="ipv6Sources"></div></div>
+        <div class="geo-block">
+            <div class="card-title" style="font-size:0.9rem;">📍 地理位置</div>
+            <div id="geoInfo">等待IP…</div>
+        </div>
+        <button class="btn" onclick="loadIP()">🔄 刷新</button>
+    </div>
+
+    <!-- 2. 连通性 -->
+    <div class="glass-card">
+        <div class="card-title">🚦 网络连通性</div>
+        <div class="conn-grid" id="connGrid"></div>
+        <input id="customSite" placeholder="添加网站"><button class="btn" onclick="addCustom()">+ 添加</button>
+    </div>
+
+    <!-- 3. WebRTC -->
+    <div class="glass-card">
+        <div class="card-title">🚱 WebRTC 泄露</div>
+        <div id="webrtcRes"></div>
+        <button class="btn" onclick="runWebRTC()">检测</button>
+    </div>
+
+    <!-- 4. DNS 泄漏 -->
+    <div class="glass-card">
+        <div class="card-title">🛑 DNS 泄漏</div>
+        <div id="dnsLeak"></div>
+        <button class="btn" onclick="runDNS()">检测</button>
+    </div>
+
+    <!-- 5. 网速测试 -->
+    <div class="glass-card">
+        <div class="card-title">🚀 网速测试</div>
+        <div style="display:flex;gap:10px;justify-content:space-around;">
+            <div><span>⬇️</span><br><span id="dl">-</span><small>Mbps</small></div>
+            <div><span>⬆️</span><br><span id="ul">-</span><small>Mbps</small></div>
+            <div><span>⏱️</span><br><span id="lat">-</span><small>ms</small></div>
+        </div>
+        <select id="speedSize"><option value="10">10MB</option><option value="50" selected>50MB</option></select>
+        <button class="btn btn-primary" onclick="runSpeed()">开始测速</button>
+    </div>
+
+    <!-- 6. 高级工具 -->
+    <div class="glass-card">
+        <div class="card-title">🧰 高级工具</div>
+        <div class="tools-nav-mobile" id="toolsNavMobile">
+            <span class="tool-chip active" data-tool="mtr">📡 MTR</span>
+            <span class="tool-chip" data-tool="block">📟 封锁</span>
+            <span class="tool-chip" data-tool="mac">📓 MAC</span>
+            <span class="tool-chip" data-tool="whois">🚧 Whois</span>
+            <span class="tool-chip" data-tool="dns">🚏 DNS</span>
+            <span class="tool-chip" data-tool="browser">🗄️ 浏览器</span>
+        </div>
+        <div id="toolContentMobile"></div>
+        <!-- 折叠安全检查 -->
+        <div class="fold-header" id="secFoldMobile">🖥️ 安全检查清单 <span>▼</span></div>
+        <div class="fold-content" id="secContentMobile">
+            <div id="securityChecklist"></div>
+        </div>
+    </div>
+
+    <div class="footer">© IP.LOS.PINK</div>
+
+    <script>
+        const API = 'https://ip.los.pink/api/';
+        let connResults = {};
+        let currentToolMobile = 'mtr';
+
+        function esc(t) { const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+
+        async function loadIP() {
+            const r = await fetch(API+'ip_info.php'); const d = await r.json();
+            let v4='', v6='', geo=null;
+            d.sources.forEach(s=>{
+                const row = `<div class="data-row"><span>${s.name}</span><span class="data-value ip">${s.ip||'失败'}</span></div>`;
+                if(s.type.includes('IPv4')||s.type==='IPv4'){ v4+=row; if(s.ip&&!geo) geo=s.ip; }
+                else if(s.type.includes('IPv6')||s.type==='IPv6'){ v6+=row; if(s.ip&&!geo) geo=s.ip; }
+            });
+            document.getElementById('ipv4Sources').innerHTML=v4||'无数据';
+            document.getElementById('ipv6Sources').innerHTML=v6||'无数据';
+            if(geo) loadGeo(geo);
+        }
+
+        async function loadGeo(ip) {
+            const r = await fetch(API+`geo.php?ip=${ip}`); const g = await r.json();
+            document.getElementById('geoInfo').innerHTML = `
+                <div class="data-row"><span>国家</span><span>${g.country||'?'}</span></div>
+                <div class="data-row"><span>城市</span><span>${g.city||'?'}</span></div>
+                <div class="data-row"><span>ISP</span><span>${g.isp||'?'}</span></div>`;
+        }
+
+        const sites = [{n:'微信',d:'weixin.qq.com'},{n:'淘宝',d:'taobao.com'},{n:'Google',d:'google.com'},{n:'Cloudflare',d:'cloudflare.com'},{n:'YouTube',d:'youtube.com'},{n:'GitHub',d:'github.com'},{n:'ChatGPT',d:'chat.openai.com'}];
+        let customs = [];
+
+        function renderConn() {
+            const all = [...sites, ...customs];
+            let h=''; all.forEach(s=>{
+                const r = connResults[s.d];
+                h+=`<div class="conn-item" onclick="testSingle('${s.d}')"><b>${s.n}</b><br><span class="badge ${r?(r.available?'badge-success':'badge-danger'):'badge-info'}">${r?(r.available?r.latency+'ms':'不可达'):'待测'}</span></div>`;
+            });
+            document.getElementById('connGrid').innerHTML=h;
+        }
+
+        async function testSingle(d) {
+            const start=performance.now(); let ok=false,lat=null;
+            try{ await fetch(`https://${d}/favicon.ico?t=${Date.now()}`,{mode:'no-cors'}); ok=true; lat=Math.round(performance.now()-start); }catch(e){}
+            connResults[d]={available:ok,latency:lat}; renderConn();
+        }
+        async function runConn() { for(let s of [...sites,...customs]) await testSingle(s.d); }
+        function addCustom() {
+            const v=document.getElementById('customSite').value.trim(); if(!v)return;
+            customs.push({n:v,d:v}); document.getElementById('customSite').value=''; renderConn(); testSingle(v);
+        }
+
+        function runWebRTC() {
+            const div=document.getElementById('webrtcRes'); div.innerHTML='检测中...';
+            const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+            pc.createDataChannel(''); pc.createOffer().then(o=>pc.setLocalDescription(o));
+            pc.onicecandidate=e=>{
+                if(e.candidate){
+                    const m=e.candidate.candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+                    if(m){ div.innerHTML=`<span class="badge badge-warning">泄露IP: ${m[1]}</span>`; pc.close(); }
+                }else div.innerHTML='<span class="badge badge-success">未泄露</span>';
+            };
+            setTimeout(()=>{ if(div.innerHTML==='检测中...') div.innerHTML='超时'; },5000);
+        }
+
+        async function runDNS() {
+            const div=document.getElementById('dnsLeak'); div.innerHTML='检测中...';
+            const r=await fetch(API+'dns_leak.php'); const d=await r.json();
+            let h=''; d.results.forEach(r=> h+=`<div class="data-row"><span>${r.server}</span><span class="data-value ip">${r.ip}</span></div>`);
+            div.innerHTML=h;
+        }
+
+        async function runSpeed() {
+            const s=document.getElementById('speedSize').value;
+            const dl=document.getElementById('dl'),ul=document.getElementById('ul'),la=document.getElementById('lat');
+            dl.textContent='...'; ul.textContent='...'; la.textContent='...';
+            const r=await fetch(API+`speedtest.php?size=${s}`); const d=await r.json();
+            dl.textContent=d.download.toFixed(1); ul.textContent=d.upload.toFixed(1); la.textContent=d.latency;
+        }
+
+        // 高级工具切换
+        document.getElementById('toolsNavMobile').addEventListener('click', function(e) {
+            if (e.target.classList.contains('tool-chip')) {
+                document.querySelectorAll('.tool-chip').forEach(el => el.classList.remove('active'));
+                e.target.classList.add('active');
+                currentToolMobile = e.target.dataset.tool;
+                renderToolMobile(currentToolMobile);
+            }
+        });
+
+        function renderToolMobile(tool) {
+            const container = document.getElementById('toolContentMobile');
+            switch(tool) {
+                case 'mtr':
+                    container.innerHTML = `<input id="mtrTarget" value="8.8.8.8"><button class="btn" onclick="runMTR()">执行</button><pre id="mtrOut" style="font-size:0.7rem;max-height:120px;overflow:auto;background:rgba(0,0,0,0.3);padding:8px;border-radius:8px;"></pre>`;
+                    break;
+                case 'block':
+                    container.innerHTML = `<input id="blockUrl" value="twitter.com"><select id="blockCountry"><option value="CN">中国</option><option value="IR">伊朗</option></select><button class="btn" onclick="runBlock()">检测</button><div id="blockRes"></div>`;
+                    break;
+                case 'mac':
+                    container.innerHTML = `<input id="macInput" placeholder="MAC"><button class="btn" onclick="lookupMAC()">查询</button><div id="macRes"></div>`;
+                    break;
+                case 'whois':
+                    container.innerHTML = `<input id="whoisInput" placeholder="域名/IP"><button class="btn" onclick="lookupWhois()">查询</button><div id="whoisRes" style="font-size:0.7rem;"></div>`;
+                    break;
+                case 'dns':
+                    container.innerHTML = `<input id="dnsDomain" value="google.com"><button class="btn" onclick="resolveDNS()">解析</button><div id="dnsRes"></div>`;
+                    break;
+                case 'browser':
+                    container.innerHTML = `<div class="data-row"><span>UA</span><span style="font-size:0.7rem;">${navigator.userAgent}</span></div><div class="data-row"><span>语言</span><span>${navigator.language}</span></div><div class="data-row"><span>屏幕</span><span>${screen.width}x${screen.height}</span></div>`;
+                    break;
+                default: container.innerHTML = '';
+            }
+        }
+
+        async function runMTR() {
+            const t=document.getElementById('mtrTarget').value; const o=document.getElementById('mtrOut');
+            o.textContent='...'; const r=await fetch(API+`mtr.php?target=${encodeURIComponent(t)}`); o.textContent=await r.text();
+        }
+        async function runBlock() {
+            const u=document.getElementById('blockUrl').value, c=document.getElementById('blockCountry').value;
+            const d=document.getElementById('blockRes'); d.innerHTML='...';
+            const r=await fetch(API+`block_test.php?url=${encodeURIComponent(u)}&country=${c}`); const j=await r.json();
+            d.innerHTML=`<span class="badge ${j.blocked?'badge-danger':'badge-success'}">${j.blocked?'封锁':'可访问'}</span>`;
+        }
+        async function lookupMAC() {
+            const m=document.getElementById('macInput').value; const d=document.getElementById('macRes');
+            const r=await fetch(API+`mac_lookup.php?mac=${m}`); const j=await r.json(); d.textContent=j.vendor||'未找到';
+        }
+        async function lookupWhois() {
+            const q=document.getElementById('whoisInput').value; const d=document.getElementById('whoisRes');
+            const r=await fetch(API+`whois.php?query=${q}`); d.innerHTML=`<pre style="white-space:pre-wrap;">${esc(await r.text())}</pre>`;
+        }
+        async function resolveDNS() {
+            const dm=document.getElementById('dnsDomain').value; const d=document.getElementById('dnsRes');
+            const r=await fetch(API+`dns_resolve.php?domain=${dm}`); const j=await r.json(); d.innerHTML=j.records?j.records.join('<br>'):'无';
+        }
+
+        // 安全检查清单折叠
+        function initSecurity() {
+            const items = ['强密码','双因素认证','系统更新','HTTPS','DNS泄漏检查','关闭多余插件','VPN/代理','数据备份','WebRTC泄露检查','公共WiFi安全','浏览器指纹','账号活动'];
+            const saved = JSON.parse(localStorage.getItem('sec_m')||'{}');
+            let h=''; items.forEach((t,i)=>{ h+=`<div class="security-item"><input type="checkbox" id="s${i}" ${saved[i]?'checked':''} onchange="saveSec()"><label for="s${i}">${t}</label></div>`; });
+            document.getElementById('securityChecklist').innerHTML=h;
+        }
+        function saveSec() {
+            const c={}; document.querySelectorAll('#securityChecklist input').forEach((cb,i)=>{ c[i]=cb.checked; });
+            localStorage.setItem('sec_m',JSON.stringify(c));
+        }
+        document.getElementById('secFoldMobile').addEventListener('click', function() {
+            this.classList.toggle('open');
+            document.getElementById('secContentMobile').classList.toggle('show');
+        });
+
+        window.onload = () => {
+            loadIP(); renderConn(); runConn(); runDNS(); initSecurity(); renderToolMobile('mtr');
+        };
+    </script>
+</body>
+</html>
